@@ -79,4 +79,15 @@ public final class DateTimeTypesUtils {
         return dataSource.getConnection();
     }
 
+    public static void createTemporaryTable(Connection connection) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("CREATE TEMPORARY TABLE datetime (" +
+                "timestamp timestamp, timestamptz timestamptz, date date)")) {
+            statement.execute();
+        }
+        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO datetime " +
+                "VALUES (null, null, null)")) {
+            statement.execute();
+        }
+    }
+
 }

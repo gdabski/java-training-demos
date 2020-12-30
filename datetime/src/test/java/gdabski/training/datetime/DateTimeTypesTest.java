@@ -1,6 +1,6 @@
 package gdabski.training.datetime;
 
-import gdabski.training.datetime.DateTimeTypesUtils.Person;
+import gdabski.training.datetime.DateTimeTypesUtils.*;
 import org.junit.jupiter.api.Test;
 import org.threeten.extra.Interval;
 import org.threeten.extra.LocalDateRange;
@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -34,22 +35,21 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-import static gdabski.training.datetime.DateTimeTypesUtils.deserializeFromJson;
-import static gdabski.training.datetime.DateTimeTypesUtils.getConnection;
-import static gdabski.training.datetime.DateTimeTypesUtils.getEventsOnDateInYear1969;
-import static gdabski.training.datetime.DateTimeTypesUtils.serializeToJson;
+import static gdabski.training.datetime.DateTimeTypesUtils.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-/** === JAVA 11 DATETIME TYPES === */
+/**
+ * === JAVA 11 DATETIME TYPES ===
+ */
 class DateTimeTypesTest {
 
     /**
-     POJĘCIA 1:
-     <ul>
-     <li>moment w czasie (instant, instant in time, moment, timestamp) np. {@code 1608317121239} - punkt
-     na (linearnej) osi czasu</li>
-     </ul>
+     * POJĘCIA 1:
+     * <ul>
+     * <li>moment w czasie (instant, instant in time, moment, timestamp) np. {@code 1608317121239} - punkt
+     * na (linearnej) osi czasu</li>
+     * </ul>
      */
     @Test
     void demonstrateUnixTimestamp() {
@@ -65,13 +65,13 @@ class DateTimeTypesTest {
     }
 
     /**
-     POJĘCIA 2:
-     <ul>
-     <li>dzień (day, date) np. {@code 2020-12-18}</li>
-     <li>czas (time) np. {@code 15:32:11.345}</li>
-     <li>strefa czasowa (timezone)  np. {@code Z}, {@code +02:00}</li>
-     <li>data (date, datetime)  np. {@code 2020-12-18T15:32.345}, {@code 2020-12-18T15:32.345+02:00}</li>
-     </ul>
+     * POJĘCIA 2:
+     * <ul>
+     * <li>dzień (day, date) np. {@code 2020-12-18}</li>
+     * <li>czas (time) np. {@code 15:32:11.345}</li>
+     * <li>strefa czasowa (timezone)  np. {@code Z}, {@code +02:00}</li>
+     * <li>data (date, datetime)  np. {@code 2020-12-18T15:32.345}, {@code 2020-12-18T15:32.345+02:00}</li>
+     * </ul>
      */
     @Test
     void demonstrateJavaUtilDate() {
@@ -587,8 +587,8 @@ class DateTimeTypesTest {
     }
 
     /**
-     *  Wszystkie trzy typy dziedziczą po {@link Date}, co jest wielką pomyłką i źródłem problemów
-     *  (zob. javadoc {@link Timestamp}).
+     * Wszystkie trzy typy dziedziczą po {@link Date}, co jest wielką pomyłką i źródłem problemów
+     * (zob. javadoc {@link Timestamp}).
      */
     @Test
     void demonstrateJavaSqlTypesExtendJavaUtilDate() {
@@ -623,18 +623,126 @@ class DateTimeTypesTest {
      */
     @Test
     void demonstrateJavaSqlTimestampBehaviorWhenReadFromDatabase() throws SQLException {
-        Date javaUtilDate = new Date();
-        Timestamp javaSqlTimestamp = new Timestamp(javaUtilDate.getTime());
-        System.out.println(javaUtilDate);
-        System.out.println(javaSqlTimestamp);
+        Timestamp javaSqlTimestamp = new Timestamp(System.currentTimeMillis());
+        System.out.format("original %s %s%n", javaSqlTimestamp, javaSqlTimestamp.getTime());
 
-        try (Connection connection = getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT TIMESTAMP ? val")) {
-            statement.setTimestamp(1, javaSqlTimestamp);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                Timestamp retrieved = resultSet.getTimestamp("val");
+        try (Connection connection = getConnection()) {
+            createTemporaryTable(connection);
 
-                System.out.println(retrieved);
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE datetime SET timestamp = ?, timestamptz = ?")) {
+                statement.setTimestamp(1, javaSqlTimestamp);
+                statement.setTimestamp(2, javaSqlTimestamp);
+                statement.executeUpdate();
+
+            }
+
+            System.out.printf("%n===========%n%n");
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("SELECT timestamp, timestamptz FROM datetime")) {
+                resultSet.next();
+                Timestamp retrievedTimestamp = resultSet.getTimestamp("timestamp");
+                System.out.format("from timestamp %s %s%n", retrievedTimestamp, retrievedTimestamp.getTime());
+                Timestamp retrievedTimestamptz = resultSet.getTimestamp("timestamptz");
+                System.out.format("from timestamptz %s %s%n", retrievedTimestamptz, retrievedTimestamptz.getTime());
+
+                assertEquals(javaSqlTimestamp, retrievedTimestamp);
+                assertEquals(javaSqlTimestamp.getTime(), retrievedTimestamp.getTime());
+                assertEquals(javaSqlTimestamp, retrievedTimestamptz);
+                assertEquals(javaSqlTimestamp.getTime(), retrievedTimestamptz.getTime());
+            }
+
+            TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.ofHours(-6)));
+
+            System.out.printf("%n===========%n%n");
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("SELECT timestamp, timestamptz FROM datetime")) {
+                resultSet.next();
+                Timestamp retrievedTimestamp = resultSet.getTimestamp("timestamp");
+                System.out.format("from timestamp %s %s%n", retrievedTimestamp, retrievedTimestamp.getTime());
+                Timestamp retrievedTimestamptz = resultSet.getTimestamp("timestamptz");
+                System.out.format("from timestamptz %s %s%n", retrievedTimestamptz, retrievedTimestamptz.getTime());
+
+                assertNotEquals(javaSqlTimestamp, retrievedTimestamp);
+                assertNotEquals(javaSqlTimestamp.getTime(), retrievedTimestamp.getTime());
+                assertEquals(javaSqlTimestamp, retrievedTimestamptz);
+                assertEquals(javaSqlTimestamp.getTime(), retrievedTimestamptz.getTime());
+            }
+        }
+    }
+
+    /**
+     * W {@link java.sql.Date} przy odczycie zerowane są wszystkie elementy czasu! Podobnie zachowuje
+     * się też {@link Time}.
+     */
+    @Test
+    void demonstrateJavaSqlDateBehaviorWhenReadFromDatabase() throws SQLException {
+        java.sql.Date javaSqlDate = new java.sql.Date(System.currentTimeMillis());
+        System.out.format("original %s %s%n", javaSqlDate, javaSqlDate.getTime());
+
+        try (Connection connection = getConnection()) {
+            createTemporaryTable(connection);
+
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE datetime SET date = ?")) {
+                statement.setDate(1, javaSqlDate);
+                statement.executeUpdate();
+            }
+
+            System.out.printf("%n===========%n%n");
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("SELECT date FROM datetime")) {
+                resultSet.next();
+                java.sql.Date retrieved = resultSet.getDate("date");
+                System.out.format("retrieved %s %s%n", retrieved, retrieved.getTime());
+
+                assertNotEquals(javaSqlDate, retrieved);
+                assertNotEquals(javaSqlDate.getTime(), retrieved.getTime());
+            }
+        }
+    }
+
+    @Test
+    void demonstrateJdbcWithJsr310Types() throws SQLException {
+        LocalDateTime localDateTime = LocalDateTime.of(2020, Month.DECEMBER, 30, 14, 25, 31);
+        OffsetDateTime offsetDateTime = localDateTime.atOffset(ZoneOffset.of("+04:00"));
+        LocalDate localDate = localDateTime.toLocalDate();
+
+        System.out.println(localDateTime);
+
+        try (Connection connection = getConnection()) {
+            createTemporaryTable(connection);
+
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE datetime SET " +
+                    "timestamp = ?, timestamptz = ?, date = ?")) {
+                statement.setObject(1, localDateTime);
+                statement.setObject(2, offsetDateTime);
+                statement.setObject(3, localDate);
+                statement.executeUpdate();
+            }
+
+            System.out.printf("%n===========%n%n");
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("SELECT timestamp, timestamptz, date FROM datetime")) {
+                resultSet.next();
+                System.out.println(resultSet.getObject("timestamp", LocalDateTime.class));
+                System.out.println(resultSet.getTimestamp("timestamp").toLocalDateTime()); // bezpieczne, jeśli nie zmieni się strefa
+                System.out.println(resultSet.getTimestamp("timestamp").toInstant()); // uwaga, domyślna strefa czasowa
+                System.out.println(resultSet.getObject("timestamptz", OffsetDateTime.class)); // zawsze w UTC :o
+                System.out.println(resultSet.getObject("date", LocalDate.class));
+                System.out.println(resultSet.getDate("date").toLocalDate()); // bezpieczne, jeśli nie zmieni się strefa
+            }
+
+            TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.ofHours(-6)));
+
+            System.out.printf("%n===========%n%n");
+            try (Statement statement = connection.createStatement();
+                 ResultSet resultSet = statement.executeQuery("SELECT timestamp, timestamptz, date FROM datetime")) {
+                resultSet.next();
+                System.out.println(resultSet.getObject("timestamp", LocalDateTime.class));
+                System.out.println(resultSet.getTimestamp("timestamp").toLocalDateTime()); // bezpieczne, jeśli nie zmieni się strefa
+                System.out.println(resultSet.getTimestamp("timestamp").toInstant()); // uwaga, domyślna strefa czasowa
+                System.out.println(resultSet.getObject("timestamptz", OffsetDateTime.class)); // zawsze w UTC :o
+                System.out.println(resultSet.getObject("date", LocalDate.class));
+                System.out.println(resultSet.getDate("date").toLocalDate()); // bezpieczne, jeśli nie zmieni się strefa
             }
         }
     }
