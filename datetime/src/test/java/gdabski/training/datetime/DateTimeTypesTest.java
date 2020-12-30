@@ -5,6 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.threeten.extra.Interval;
 import org.threeten.extra.LocalDateRange;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
@@ -29,6 +35,7 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import static gdabski.training.datetime.DateTimeTypesUtils.deserializeFromJson;
+import static gdabski.training.datetime.DateTimeTypesUtils.getConnection;
 import static gdabski.training.datetime.DateTimeTypesUtils.getEventsOnDateInYear1969;
 import static gdabski.training.datetime.DateTimeTypesUtils.serializeToJson;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -564,6 +571,72 @@ class DateTimeTypesTest {
         System.out.println(deserializedShifted);
 
         assertNotEquals(zonedDateTime.toInstant(), deserializedShifted.toInstant());
+    }
+
+    /**
+     * Tu akurat reprezentacja stringowa dobrze oddaje znaczenie typów - w przeciwieństwie do
+     * ich wewnętrznej implementacji. Typy odpowiadają typom daty/czasu ze specyfikacji SQL-a:
+     * {@code TIMESTAMP}, {@code DATE}, {@code TIME}.
+     */
+    @Test
+    void demonstrateJavaSqlTypes() {
+        long unixTimestamp = System.currentTimeMillis();
+        System.out.println(new Timestamp(unixTimestamp)); // jak LocalDateTime
+        System.out.println(new java.sql.Date(unixTimestamp)); // jak LocalDate
+        System.out.println(new Time(unixTimestamp)); // jak LocalTime
+    }
+
+    /**
+     *  Wszystkie trzy typy dziedziczą po {@link Date}, co jest wielką pomyłką i źródłem problemów
+     *  (zob. javadoc {@link Timestamp}).
+     */
+    @Test
+    void demonstrateJavaSqlTypesExtendJavaUtilDate() {
+        long unixTimestamp = System.currentTimeMillis();
+        Date javaUtilDate = new Date(unixTimestamp);
+        Date javaUtilTimestamp = new Timestamp(unixTimestamp); // nie rób tego!
+        Date javaSqlDate = new java.sql.Date(unixTimestamp); // nie rób tego!
+        Date javaSqlTime = new Time(unixTimestamp); // nie rób tego!
+
+        // zwłaszcza źle: Date date = resultSet.getDate("aaa");
+        // uwaga na debugger!
+
+        assertEquals(javaUtilDate, javaUtilTimestamp);
+        assertNotEquals(javaUtilTimestamp, javaUtilDate); // niesymetryczny equals()!
+        assertEquals(javaUtilDate, javaSqlDate);
+        assertEquals(javaSqlDate, javaUtilDate); // co to ma znaczyć?
+        assertEquals(javaUtilDate, javaSqlTime);
+        assertEquals(javaSqlTime, javaUtilDate); // co to ma znaczyć?
+        assertEquals(javaSqlDate, javaUtilTimestamp);
+        assertNotEquals(javaUtilTimestamp, javaSqlDate); // niesymetryczny equals()!
+        assertEquals(javaSqlTime, javaUtilTimestamp);
+        assertNotEquals(javaUtilTimestamp, javaSqlTime); // niesymetryczny equals()!
+        assertEquals(javaSqlDate, javaSqlTime);
+        assertEquals(javaSqlTime, javaSqlDate); // co to ma znaczyć?
+    }
+
+    /**
+     * Zob.: <a href=https://www.postgresql.org/docs/10/datatype-datetime.html>dokumentacja typów dat i czasu w Postgresie</a>.
+     * W bazie danych <b>nie jest</b> przechowywana żadna informacja o strefie czasowej! Przechowywany jest
+     * wyłącznie dzień i czas. Słowa "with time zone" w nazwie kolumny należy rozumieć jako "with time zone
+     * conversion".
+     */
+    @Test
+    void demonstrateJavaSqlTimestampBehaviorWhenReadFromDatabase() throws SQLException {
+        Date javaUtilDate = new Date();
+        Timestamp javaSqlTimestamp = new Timestamp(javaUtilDate.getTime());
+        System.out.println(javaUtilDate);
+        System.out.println(javaSqlTimestamp);
+
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT TIMESTAMP ? val")) {
+            statement.setTimestamp(1, javaSqlTimestamp);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                Timestamp retrieved = resultSet.getTimestamp("val");
+
+                System.out.println(retrieved);
+            }
+        }
     }
 
 }
