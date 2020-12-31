@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<jaxb:bindings xmlns:xs="http://www.w3.org/2001/XMLSchema"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+               xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+               xsi:schemaLocation="http://java.sun.com/xml/ns/jaxb http://www.oracle.com/webfolder/technetwork/jsc/xml/ns/jaxb/bindingschema_2_0.xsd"
+               version="2.1">
+    <jaxb:globalBindings>
+        <xjc:javaType xmlType="xs:date" name="java.time.LocalDate" adapter="io.github.threetenjaxb.core.LocalDateXmlAdapter"/>
+        <xjc:javaType xmlType="xs:time" name="java.time.LocalTime" adapter="io.github.threetenjaxb.core.LocalTimeXmlAdapter"/>
+        <xjc:javaType xmlType="xs:dateTime" name="java.time.OffsetDateTime" adapter="io.github.threetenjaxb.core.OffsetDateTimeXmlAdapter"/>
+    </jaxb:globalBindings>
+</jaxb:bindings>
