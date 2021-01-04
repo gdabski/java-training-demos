@@ -10,4 +10,10 @@
         <xjc:javaType xmlType="xs:time" name="java.time.LocalTime" adapter="io.github.threetenjaxb.core.LocalTimeXmlAdapter"/>
         <xjc:javaType xmlType="xs:dateTime" name="java.time.OffsetDateTime" adapter="io.github.threetenjaxb.core.OffsetDateTimeXmlAdapter"/>
     </jaxb:globalBindings>
+
+    <jaxb:bindings schemaLocation="../xsd/demo.xsd">
+        <jaxb:bindings node="//xs:element[@name='bean']">
+            <jaxb:class name="ImprovedBean"/>
+        </jaxb:bindings>
+    </jaxb:bindings>
 </jaxb:bindings>

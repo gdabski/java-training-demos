@@ -1,10 +1,15 @@
 package gdabski.training.datetime;
 
 import gdabski.training.datetime.DateTimeTypesUtils.*;
+import gdabski.training.datetime.improved.ImprovedBean;
+import gdabski.training.datetime.standard.Bean;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.threeten.extra.Interval;
 import org.threeten.extra.LocalDateRange;
 
+import javax.xml.datatype.DatatypeConstants;
+import javax.xml.datatype.XMLGregorianCalendar;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -700,6 +705,12 @@ class DateTimeTypesTest {
         }
     }
 
+    /**
+     * Typów {@code java.sql.*} nawet w przeszłości nie powinno było się używać poza kontekstem
+     * zapisu i odczytu z bazy danych. Obecnie można nie korzystać z nich wcale, wykorzystując
+     * bezpośrednio typy JSR-310. W razie konieczności użycia typów {@code java.sql.*} należy
+     * tworzyć ich obiekty w ostatniej chwili i konwertować na typy JSR-310 od razu po otrzymaniu.
+     */
     @Test
     void demonstrateJdbcWithJsr310Types() throws SQLException {
         LocalDateTime localDateTime = LocalDateTime.of(2020, Month.DECEMBER, 30, 14, 25, 31);
@@ -745,6 +756,86 @@ class DateTimeTypesTest {
                 System.out.println(resultSet.getDate("date").toLocalDate()); // bezpieczne, jeśli nie zmieni się strefa
             }
         }
+    }
+
+    /**
+     * Opakowuje typy {@code xs:date}, {@code xs:time}, {@code xs:dateTime} i pokrewne zdefiniowane
+     * w <a href=https://www.w3.org/TR/xmlschema-2/#dateTime>standardzie XML-a</a> i obsługuje konwersje
+     * na ich leksykalną (stringową) reprezentację, która jest oparta i zbliżona do ISO 8601.
+     * <br><br>
+     * Ten typ domyślnie użyty jest klasach generowanych narzędziem XJC.
+     */
+    @Test
+    void demonstrateXmlGregorianCalendar() {
+        System.out.println(getXmlDatatypeFactory().newXMLGregorianCalendar("2020-12-29"));
+        System.out.println(getXmlDatatypeFactory().newXMLGregorianCalendar("20:00:21.123456789"));
+        System.out.println(getXmlDatatypeFactory().newXMLGregorianCalendar("2020-12-29T20:00:21.123456789"));
+
+        XMLGregorianCalendar calendar = getXmlDatatypeFactory().newXMLGregorianCalendar("2020-12-29T20:00:21.123456789+02:00");
+        System.out.println(calendar);
+        System.out.printf("%n===========%n%n");
+        System.out.println("YEAR: " + calendar.getEonAndYear());
+        System.out.println("MONTH: " + calendar.getMonth()); // 1-12
+        System.out.println("DAY: " + calendar.getDay());
+        System.out.println("HOUR: " + calendar.getHour());
+        System.out.println("MINUTE: " + calendar.getMinute());
+        System.out.println("SECOND: " + calendar.getSecond());
+        System.out.println("FRACTIONAL_SECOND: " + calendar.getFractionalSecond());
+        System.out.println("TIMEZONE: " + calendar.getTimezone());
+    }
+
+    /**
+     * Pod względem API {@link XMLGregorianCalendar} zbliżony jest do {@link Calendar}.
+     * Nie zależy jednak od {@link Locale}.
+     */
+    @Test
+    void demonstrateXmlGregorianCalendarIsMutable() {
+        XMLGregorianCalendar calendar = getXmlDatatypeFactory().newXMLGregorianCalendar("2020-12-29T20:00:21.123456789+02:00");
+        System.out.println(calendar);
+
+        calendar.setMonth(10);
+        calendar.setTime(0, 11, 33);
+        calendar.setFractionalSecond(null);
+        calendar.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+        System.out.println(calendar);
+    }
+
+    /**
+     * Tak jak typy {@code java.sql.*}, {@link XMLGregorianCalendar} jest sprofilowany pod konkretny
+     * standard komunikacji (wymiany danych) i nie powinien być używany poza tym kontekstem. Nie zapewnia
+     * silnego typowania różnych typów XML Schema i ma ograniczone metody biznesowe.
+     */
+    @Test
+    @Disabled
+    void demonstrateXmlGregorianCalendarConversions() {
+        // zob. TimeUtils i TimeUtilsTest
+    }
+
+    /**
+     * Najlepszym rozwiązaniem jest jednak zastąpienie typu {@link XMLGregorianCalendar} typami JSR-310
+     * bezpośrednio w generowanych klasach.
+     */
+    @Test
+    void demonstrateXmlSerializationWithJsr310Types() {
+        Bean bean = new Bean();
+        bean.setDate(getXmlDatatypeFactory().newXMLGregorianCalendar("2020-12-29"));
+        bean.setTime(getXmlDatatypeFactory().newXMLGregorianCalendar("20:00:21.123456789"));
+        bean.setDatetime(getXmlDatatypeFactory().newXMLGregorianCalendar("2020-12-29T20:00:21.123456789+02:00"));
+        System.out.println(bean);
+
+        String xml = serializeToXml(bean);
+        System.out.println(xml);
+
+        ImprovedBean copy = deserializeFromXml(xml, ImprovedBean.class);
+        System.out.println(copy);
+
+        xml = serializeToXml(copy);
+        System.out.println(xml);
+
+        Bean finalCopy = deserializeFromXml(xml, Bean.class);
+        System.out.println(finalCopy);
+
+        assertEquals(bean, finalCopy);
     }
 
 }
