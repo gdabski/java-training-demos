@@ -22,8 +22,11 @@ import java.io.UncheckedIOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import static java.lang.String.join;
 
@@ -69,6 +72,9 @@ public final class DateTimeTypesUtils {
             throw new ExceptionInInitializerError(e);
         }
     }
+
+    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter
+            .ofPattern("yyyyMMddHHmmssSSSSSSSSS", Locale.US); // DateTimeFormatter is thread-safe
 
     private DateTimeTypesUtils() {}
 
@@ -151,6 +157,10 @@ public final class DateTimeTypesUtils {
 
     public static DatatypeFactory getXmlDatatypeFactory() {
         return xmlDatatypeFactory;
+    }
+
+    public static String formatDate(TemporalAccessor date) {
+        return dateTimeFormatter.format(date);
     }
 
 }

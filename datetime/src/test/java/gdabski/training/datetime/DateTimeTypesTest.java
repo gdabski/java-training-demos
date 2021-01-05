@@ -314,12 +314,16 @@ class DateTimeTypesTest {
         Instant instant = Instant.now();
         ZonedDateTime zonedDateTimeAtWarsaw = instant.atZone(ZoneId.of("Europe/Warsaw"));
         System.out.println(zonedDateTimeAtWarsaw);
+        System.out.println(formatDate(zonedDateTimeAtWarsaw));
         ZonedDateTime zonedDateTimeAtPlusOne = instant.atZone(ZoneOffset.ofHours(1));
         System.out.println(zonedDateTimeAtPlusOne);
+        System.out.println(formatDate(zonedDateTimeAtPlusOne));
         ZonedDateTime zonedDateTimeAtChicago = instant.atZone(ZoneId.of("America/Chicago"));
         System.out.println(zonedDateTimeAtChicago);
+        System.out.println(formatDate(zonedDateTimeAtChicago));
         ZonedDateTime zonedDateTimeAtMinusSix = instant.atZone(ZoneOffset.of("-06:00"));
         System.out.println(zonedDateTimeAtMinusSix);
+        System.out.println(formatDate(zonedDateTimeAtMinusSix));
     }
 
     @Test
@@ -806,7 +810,7 @@ class DateTimeTypesTest {
      * silnego typowania różnych typów XML Schema i ma ograniczone metody biznesowe.
      */
     @Test
-    @Disabled
+    @Disabled("zob. TimeUtils i TimeUtilsTest")
     void demonstrateXmlGregorianCalendarConversions() {
         // zob. TimeUtils i TimeUtilsTest
     }
