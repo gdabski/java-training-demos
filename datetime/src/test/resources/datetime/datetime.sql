@@ -11,7 +11,7 @@ SELECT current_timestamp; -- timestamptz
 SELECT localtimestamp; -- timestamp
 SELECT current_date; -- date
 SELECT current_time; -- timetz
-SELECT localtime; --timetz
+SELECT localtime; --time
 
 SELECT current_timestamp, localtimestamp, current_date, current_time, localtime;
 

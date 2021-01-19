@@ -603,23 +603,23 @@ class DateTimeTypesTest {
     void demonstrateJavaSqlTypesExtendJavaUtilDate() {
         long unixTimestamp = System.currentTimeMillis();
         Date javaUtilDate = new Date(unixTimestamp);
-        Date javaUtilTimestamp = new Timestamp(unixTimestamp); // nie rób tego!
+        Date javaSqlTimestamp = new Timestamp(unixTimestamp); // nie rób tego!
         Date javaSqlDate = new java.sql.Date(unixTimestamp); // nie rób tego!
         Date javaSqlTime = new Time(unixTimestamp); // nie rób tego!
 
         // zwłaszcza źle: Date date = resultSet.getDate("aaa");
         // uwaga na debugger!
 
-        assertEquals(javaUtilDate, javaUtilTimestamp);
-        assertNotEquals(javaUtilTimestamp, javaUtilDate); // niesymetryczny equals()!
+        assertEquals(javaUtilDate, javaSqlTimestamp);
+        assertNotEquals(javaSqlTimestamp, javaUtilDate); // niesymetryczny equals()!
         assertEquals(javaUtilDate, javaSqlDate);
         assertEquals(javaSqlDate, javaUtilDate); // co to ma znaczyć?
         assertEquals(javaUtilDate, javaSqlTime);
         assertEquals(javaSqlTime, javaUtilDate); // co to ma znaczyć?
-        assertEquals(javaSqlDate, javaUtilTimestamp);
-        assertNotEquals(javaUtilTimestamp, javaSqlDate); // niesymetryczny equals()!
-        assertEquals(javaSqlTime, javaUtilTimestamp);
-        assertNotEquals(javaUtilTimestamp, javaSqlTime); // niesymetryczny equals()!
+        assertEquals(javaSqlDate, javaSqlTimestamp);
+        assertNotEquals(javaSqlTimestamp, javaSqlDate); // niesymetryczny equals()!
+        assertEquals(javaSqlTime, javaSqlTimestamp);
+        assertNotEquals(javaSqlTimestamp, javaSqlTime); // niesymetryczny equals()!
         assertEquals(javaSqlDate, javaSqlTime);
         assertEquals(javaSqlTime, javaSqlDate); // co to ma znaczyć?
     }
